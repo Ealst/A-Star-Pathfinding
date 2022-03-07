@@ -10,7 +10,7 @@ X = 800
 screen = pygame.display.set_mode((X, X))
 
 # set amount of squares that make up grid and calculate their size
-recAmount = 40
+recAmount = 20
 recSize = int(X / recAmount)
 
 WHITE = (255, 255, 255)
