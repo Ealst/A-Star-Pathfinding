@@ -236,7 +236,7 @@ def drawBoard(display):
 
 # initiate 2-dimensional array to internally represent grid
 def initBoard():
-    board = [[None] * recAmount for i in range(recAmount)]
+    board = [[None] * recAmount for _ in range(recAmount)]
     for i in range(len(board)):
         for j in range(len(board[i])):
             board[i][j] = Node(i, j)
