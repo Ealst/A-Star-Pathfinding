@@ -10,16 +10,16 @@ X = 800
 screen = pygame.display.set_mode((X, X))
 
 # set amount of squares that make up grid and calculate their size
-recAmount = 20
+recAmount = 40
 recSize = int(X / recAmount)
 
 WHITE = (255, 255, 255)
-LIGHT_BLUE = (100, 230, 255)
-LIGHT_GREEN = (150, 255, 180)
-BLACK = (30, 30, 30)
-RED = (255, 0, 0)
-GREEN = (0, 255, 0)
-BLUE = (50, 50, 255)
+LIGHT_BLUE = (100, 255, 255)
+LIGHTER_BLUE = (180, 255, 255)
+BLACK = (40, 40, 40)
+RED = (255, 102, 102)
+GREEN = (102, 255, 102)
+PURPLE = (102, 102, 255)
 
 # group of all colored squares
 colored = pygame.sprite.Group()
@@ -282,7 +282,7 @@ def aStar(board, start, end):
 
         # color current square except start and end
         if current != start and current != end:
-            current.drawColorOnBoard(LIGHT_BLUE)
+            current.drawColorOnBoard(LIGHTER_BLUE)
 
         expandNeighbors(board, current, end)
 
@@ -328,7 +328,7 @@ def expandNeighbors(board, parent, end):
             current.calculateF()
 
             if current != START and current != END:
-                current.drawColorOnBoard(LIGHT_GREEN)
+                current.drawColorOnBoard(LIGHT_BLUE)
             pygame.time.wait(30)
 
 
@@ -337,7 +337,7 @@ def printPath(start: Node, end: Node):
     if end == start:
         return
     if end != END:
-        end.drawColorOnBoard(BLUE)
+        end.drawColorOnBoard(PURPLE)
     printPath(start, end.parent)
 
 
