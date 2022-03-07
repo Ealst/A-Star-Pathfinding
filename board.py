@@ -3,18 +3,16 @@ from operator import attrgetter
 
 import pygame
 
-# initiate pygame
 pygame.init()
-# size of board
+# height and width of window
 X = 800
 # create new Window
 screen = pygame.display.set_mode((X, X))
 
-# set amount of rectangles that make up grid
+# set amount of squares that make up grid and calculate their size
 recAmount = 20
 recSize = int(X / recAmount)
 
-# colors for later use
 WHITE = (255, 255, 255)
 LIGHT_BLUE = (100, 230, 255)
 LIGHT_GREEN = (150, 255, 180)
@@ -23,22 +21,24 @@ RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (50, 50, 255)
 
-group = pygame.sprite.Group()
+# group of all colored squares
+colored = pygame.sprite.Group()
 
 
+# Rectangle class only used to drag and drop start and end
 class Rec(pygame.sprite.Sprite):
     def __init__(self, color, height, width):
         super().__init__()
-
         self.image = pygame.Surface([width, height])
         pygame.draw.rect(self.image, color, pygame.Rect(0, 0, width, height))
         self.rect = self.image.get_rect()
         self.color = color
 
 
+# every square on the grid is represented by a Node object
 class Node:
-
     def __init__(self, x, y):
+        # make sure x and y lie within grid
         if x > 0 or y > 0 or x < recAmount or y < recAmount:
             self.x = x
             self.y = y
@@ -58,141 +58,139 @@ class Node:
     def calculateF(self):
         self.fCost = self.hCost + self.gCost
 
+    # using octile distance (Chebyshev distance with diagonal distance of sqrt(2))
     def calculateHeuristic(self, end):
-        # self.hCost = abs(self.x - end.x) + abs(self.y - end.y)
-
-        self.hCost = 10 * max(abs(end.x - self.x), abs(end.y - self.y)) + 4*min(abs(end.x - self.x), abs(end.y - self.y))
+        self.hCost = 10 * max(abs(end.x - self.x), abs(end.y - self.y)) \
+                     + 4 * min(abs(end.x - self.x), abs(end.y - self.y))
 
     def setParent(self, parent):
         self.parent = parent
 
-    # colors rectangle at current position of node
+    # colors square at current position of node
     def drawColorOnBoard(self, color):
-        # pygame.draw.rect(screen, color, pygame.Rect(self.x * recSize, self.y * recSize, recSize, recSize))
-        # drawBoard(screen)
-        # pygame.display.update()
         r = Rec(color, recSize, recSize)
         r.rect.x = self.x * recSize
         r.rect.y = self.y * recSize
-        group.add(r)
-        group.update()
-        group.draw(screen)
+        colored.add(r)
+        colored.draw(screen)
         drawBoard(screen)
         pygame.display.flip()
 
     def removeColorOnBoard(self):
-        # pygame.draw.rect(screen, WHITE, pygame.Rect(self.x * recSize, self.y * recSize, recSize, recSize))
-        # drawBoard(screen)
-        # pygame.display.update()
         r = Rec(WHITE, recSize, recSize)
         r.rect.x = self.x * recSize
         r.rect.y = self.y * recSize
-        group.add(r)
+        colored.add(r)
 
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y
 
 
 # place start and end
-START = Node(0, int(recAmount / 2) - 1)
-END = Node(recAmount - 1, int(recAmount / 2) - 1)
+START = Node(1, int(recAmount / 2) - 1)
+END = Node(recAmount - 2, int(recAmount / 2) - 1)
 
-# TODO
+# used to remove walls on grid
 remove = False
+# used so board can only be edited at beginning or after board has been reset
 ready = True
-rectangle = pygame.sprite.Group()
 
 
 def main():
-    # set caption
-
     pygame.display.set_caption('A* Pathfinding')
 
     # internal representation of grid/board
     board = initBoard()
     setupBoard()
 
+    # see above
     global ready
-    mouse_down = False
     global remove
+    # used to draw walls
+    mouse_down = False
+    # used to drag and drop start and end to new location
     dragAndDrop = False
+    # initiate rectangle which will be used to drag start and end
+    drag = Rec(WHITE, 0, 0)
 
-    rec = Rec(WHITE, 0, 0)
-
+    # main event loop
     while True:
-
         for event in pygame.event.get():
-
             # quit program
             if event.type == pygame.QUIT:
                 pygame.quit()
                 quit()
 
             if event.type == pygame.KEYDOWN:
+                # press space to start pathfinding
                 if event.key == pygame.K_SPACE and ready:
                     ready = False
                     aStar(board, START, END)
 
-                # reset board
+                # press backspace to reset board
                 if event.key == pygame.K_BACKSPACE:
                     ready = True
                     setupBoard()
                     board = initBoard()
-                    START.x = 0
+                    # remove everything from board
+                    for square in colored:
+                        colored.remove(square)
+                    # reset start and end
+                    START.x = 1
                     START.y = int(recAmount / 2) - 1
-                    END.x = recAmount - 1
+                    END.x = recAmount - 2
                     END.y = int(recAmount / 2) - 1
                     START.drawColorOnBoard(GREEN)
                     END.drawColorOnBoard(RED)
-                    for e in group:
-                        if (math.floor(e.rect.x / recSize) != START.x or (math.floor(e.rect.y / recSize) != START.y)) \
-                                and (
-                                math.floor(e.rect.x / recSize) != END.x or (math.floor(e.rect.y / recSize) != END.y)):
-                            group.remove(e)
 
             if event.type == pygame.MOUSEBUTTONDOWN:
+                # left mouse-button to draw walls
                 if event.button == 1:
                     mouse_down = True
-
-                x = math.floor(pygame.mouse.get_pos()[0] / recSize)
-                y = math.floor(pygame.mouse.get_pos()[1] / recSize)
-                if START.x == x and START.y == y:
-                    dragAndDrop = True
-                    rec = Rec(GREEN, recSize, recSize)
-                    rec.rect.x = START.x * recSize
-                    rec.rect.y = START.y * recSize
-                    START.removeColorOnBoard()
-
-                elif END.x == x and END.y == y:
-                    dragAndDrop = True
-                    rec = Rec(RED, recSize, recSize)
-                    rec.rect.x = END.x * recSize
-                    rec.rect.y = END.y * recSize
-                    END.removeColorOnBoard()
-
+                # right mouse-button to remove walls
                 if event.button == 3:
                     remove = True
                     mouse_down = True
 
+                x = math.floor(pygame.mouse.get_pos()[0] / recSize)
+                y = math.floor(pygame.mouse.get_pos()[1] / recSize)
+                # mouse currently over start => drag start
+                if START.x == x and START.y == y:
+                    dragAndDrop = True
+                    drag = Rec(GREEN, recSize, recSize)
+                    drag.rect.x = START.x * recSize
+                    drag.rect.y = START.y * recSize
+                    START.removeColorOnBoard()
+                # mouse currently over end => drag start
+                elif END.x == x and END.y == y:
+                    dragAndDrop = True
+                    drag = Rec(RED, recSize, recSize)
+                    drag.rect.x = END.x * recSize
+                    drag.rect.y = END.y * recSize
+                    END.removeColorOnBoard()
+
             if event.type == pygame.MOUSEBUTTONUP:
                 x = math.floor(pygame.mouse.get_pos()[0] / recSize)
                 y = math.floor(pygame.mouse.get_pos()[1] / recSize)
+                # end should not be placed on start and same for the other way around
                 if x == END.x and y == END.y or x == START.x and y == START.y:
-                    rec = Rec(WHITE, 0, 0)
+                    drag = Rec(WHITE, 0, 0)
                     START.drawColorOnBoard(GREEN)
                     END.drawColorOnBoard(RED)
 
+                # place start (end) on square mouse is currently over
                 elif dragAndDrop:
-                    if rec.color == GREEN:
+                    if drag.color == GREEN:
                         START.x = x
                         START.y = y
                         START.drawColorOnBoard(GREEN)
-                        rec = Rec(WHITE, 0, 0)
-                    elif rec.color == RED:
+                        drag = Rec(WHITE, 0, 0)
+                    elif drag.color == RED:
                         END.x = x
                         END.y = y
                         END.drawColorOnBoard(RED)
-                        rec = Rec(WHITE, 0, 0)
+                        drag = Rec(WHITE, 0, 0)
+                    # if end/start is placed on a wall remove blocked status in board
                     if board[x][y] is not None:
                         board[x][y].blocked = False
 
@@ -201,30 +199,30 @@ def main():
                 remove = False
 
             if event.type == pygame.MOUSEMOTION:
+                # draw rec to current mouse position to drag start/end
                 if dragAndDrop:
-                    x = math.floor(pygame.mouse.get_pos()[0])
-                    y = math.floor(pygame.mouse.get_pos()[1])
-                    rec.rect.x = x
-                    rec.rect.y = y
+                    x = pygame.mouse.get_pos()[0]
+                    y = pygame.mouse.get_pos()[1]
+                    drag.rect.x = x
+                    drag.rect.y = y
 
+            # continually draw walls while left mouse-button is held down
             if mouse_down:
                 if not dragAndDrop:
-                    drawCursor(pygame.mouse.get_pos(), board)
+                    setWall(pygame.mouse.get_pos(), board)
                     pygame.time.Clock().tick(50)
-            # update display
 
+            # update display
             screen.fill(WHITE)
-            group.update()
-            group.draw(screen)
-            pygame.draw.rect(screen, rec.color, rec)
+            colored.update()
+            colored.draw(screen)
+            pygame.draw.rect(screen, drag.color, drag)
             drawBoard(screen)
             pygame.display.flip()
 
 
 def setupBoard():
     screen.fill(WHITE)
-
-    # show start and end
     START.drawColorOnBoard(GREEN)
     END.drawColorOnBoard(RED)
 
@@ -236,6 +234,7 @@ def drawBoard(display):
         pygame.draw.line(display, (0, 0, 0), (i * recSize, 0), (i * recSize, X), 1)
 
 
+# initiate 2-dimensional array to internally represent grid
 def initBoard():
     board = [[None] * recAmount for i in range(recAmount)]
     for i in range(len(board)):
@@ -244,7 +243,8 @@ def initBoard():
     return board
 
 
-def drawCursor(position, board):
+# place wall at current mouse position
+def setWall(position, board):
     x = math.floor(position[0] / recSize)
     y = math.floor(position[1] / recSize)
 
@@ -260,7 +260,7 @@ def drawCursor(position, board):
         current.block()
 
 
-# open list
+# contains all known Nodes
 open_list = []
 
 
@@ -280,22 +280,26 @@ def aStar(board, start, end):
             open_list.clear()
             return
 
-        if current != START and current != END:
+        # color current square except start and end
+        if current != start and current != end:
             current.drawColorOnBoard(LIGHT_BLUE)
 
-        getNeighbors(board, current, end)
+        expandNeighbors(board, current, end)
 
 
-def getNeighbors(board, parent, end):
+# add all viable neighbors of parent to open list
+# and calculate their g-,h-,fCost and set their parents
+def expandNeighbors(board, parent, end):
     x = parent.x
     y = parent.y
 
+    # loop over all 8 neighbors of parent
     for i in range(-1, 2):
         for j in range(-1, 2):
+
             # continue if current is parent
             if i == 0 and j == 0:
                 continue
-
             # continue if outside of board
             if (x + i) >= recAmount or (x + i) < 0 or (y + j) >= recAmount or (y + j) < 0:
                 continue
@@ -305,20 +309,19 @@ def getNeighbors(board, parent, end):
             if current.blocked:
                 continue
 
-                # update gCost
-                # TODO
+            # update gCost
             if abs(i) == abs(j):
+                # neighbor lies diagonally
                 gCost = 14 + parent.gCost
             else:
                 gCost = 10 + parent.gCost
 
-            # if current is already in open list and gCost is smaller change parent
+            # if current is already in open list and gCost (=distance of path to current) would be bigger continue
             if current in open_list and gCost >= current.gCost:
                 continue
 
             open_list.append(current)
 
-            # update fCost
             current.setParent(parent)
             current.gCost = gCost
             current.calculateHeuristic(end)
@@ -326,10 +329,10 @@ def getNeighbors(board, parent, end):
 
             if current != START and current != END:
                 current.drawColorOnBoard(LIGHT_GREEN)
-            pygame.time.wait(20)
+            pygame.time.wait(30)
 
 
-# prints path from end end to start
+# recursively prints path from end to start
 def printPath(start: Node, end: Node):
     if end == start:
         return
