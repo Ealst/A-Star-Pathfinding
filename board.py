@@ -11,14 +11,14 @@ X = 800
 screen = pygame.display.set_mode((X, X))
 
 # set amount of rectangles that make up grid
-recAmount = 40
+recAmount = 20
 recSize = int(X / recAmount)
 
 # colors for later use
 WHITE = (255, 255, 255)
 LIGHT_BLUE = (100, 230, 255)
 LIGHT_GREEN = (150, 255, 180)
-BLACK = (20, 20, 20)
+BLACK = (30, 30, 30)
 RED = (255, 0, 0)
 GREEN = (0, 255, 0)
 BLUE = (50, 50, 255)
@@ -59,9 +59,9 @@ class Node:
         self.fCost = self.hCost + self.gCost
 
     def calculateHeuristic(self, end):
-        #self.hCost = math.pow((self.x - end.x), 2) + math.pow((self.y - end.y), 2)
-        #self.hCost = abs(self.x - end.x) + abs(self.y - end.y)
-        self.hCost = max(abs(end.x - self.x), abs(end.y - self.y))
+        # self.hCost = abs(self.x - end.x) + abs(self.y - end.y)
+
+        self.hCost = 10 * max(abs(end.x - self.x), abs(end.y - self.y)) + 4*min(abs(end.x - self.x), abs(end.y - self.y))
 
     def setParent(self, parent):
         self.parent = parent
