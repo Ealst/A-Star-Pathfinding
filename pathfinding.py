@@ -11,7 +11,7 @@ X = 800
 screen = pygame.display.set_mode((X, X))
 
 # set amount of squares that make up grid and calculate their size
-recAmount = 20
+recAmount = 40
 recSize = int(X / recAmount)
 
 WHITE = (255, 255, 255)
@@ -148,13 +148,7 @@ def main():
 
                 # create random maze
                 if event.key == pygame.K_m and ready:
-                    START.removeColorOnBoard()
-                    END.removeColorOnBoard()
-                    for i in board:
-                        for j in i:
-                            j.block()
-                            j.drawColorOnBoard(BLACK)
-                            j.visited = False
+                    blockAll(board)
                     generateMaze(Node(0, 0), board)
 
                     # place start and end
@@ -232,7 +226,7 @@ def main():
             if mouse_down:
                 if not dragAndDrop:
                     setWall(pygame.mouse.get_pos(), board)
-                    pygame.time.Clock().tick(50)
+                    #pygame.time.Clock().tick(50)
 
             # update display
             screen.fill(WHITE)
@@ -405,6 +399,18 @@ def getNeighbors(x, y, board):
             neighbors.append(neighbor)
     return neighbors
 
+
+def blockAll(board: []):
+    START.drawColorOnBoard(BLACK)
+    END.drawColorOnBoard(BLACK)
+    for i in board:
+        for j in i:
+            j.block()
+            j.visited = False
+            r = Rec(BLACK, recSize, recSize)
+            r.rect.x = j.x * recSize
+            r.rect.y = j.y * recSize
+            colored.add(r)
 
 if __name__ == "__main__":
     main()
