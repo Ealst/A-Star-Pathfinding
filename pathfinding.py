@@ -1,5 +1,6 @@
 import math
 from operator import attrgetter
+import random
 
 import pygame
 
@@ -51,6 +52,8 @@ class Node:
         self.fCost = 0
         self.gCost = 0
         self.hCost = 0
+        # used for maze generation
+        self.visited = False
 
     def block(self):
         self.blocked = True
@@ -143,6 +146,25 @@ def main():
                     START.drawColorOnBoard(GREEN)
                     END.drawColorOnBoard(RED)
 
+                # create random maze
+                if event.key == pygame.K_m and ready:
+                    START.removeColorOnBoard()
+                    END.removeColorOnBoard()
+                    for i in board:
+                        for j in i:
+                            j.block()
+                            j.drawColorOnBoard(BLACK)
+                            j.visited = False
+                    generateMaze(Node(0, 0), board)
+
+                    # place start and end
+                    START.x = 0
+                    START.y = 0
+                    END.x = recAmount - 2
+                    END.y = recAmount - 2
+                    START.drawColorOnBoard(GREEN)
+                    END.drawColorOnBoard(RED)
+
             if event.type == pygame.MOUSEBUTTONDOWN:
                 # left mouse-button to draw walls
                 if event.button == 1:
@@ -155,14 +177,14 @@ def main():
                 x = math.floor(pygame.mouse.get_pos()[0] / recSize)
                 y = math.floor(pygame.mouse.get_pos()[1] / recSize)
                 # mouse currently over start => drag start
-                if START.x == x and START.y == y:
+                if START.x == x and START.y == y and ready:
                     dragAndDrop = True
                     drag = Rec(GREEN, recSize, recSize)
                     drag.rect.x = START.x * recSize
                     drag.rect.y = START.y * recSize
                     START.removeColorOnBoard()
                 # mouse currently over end => drag start
-                elif END.x == x and END.y == y:
+                elif END.x == x and END.y == y and ready:
                     dragAndDrop = True
                     drag = Rec(RED, recSize, recSize)
                     drag.rect.x = END.x * recSize
@@ -329,7 +351,7 @@ def expandNeighbors(board, parent, end):
 
             if current != START and current != END:
                 current.drawColorOnBoard(LIGHT_BLUE)
-            pygame.time.wait(30)
+            pygame.time.wait(50)
 
 
 # recursively prints path from end to start
@@ -339,6 +361,49 @@ def printPath(start: Node, end: Node):
     if end != END:
         end.drawColorOnBoard(PURPLE)
     printPath(start, end.parent)
+
+
+# generate random maze with recursive backtracking
+# http://weblog.jamisbuck.org/2010/12/27/maze-generation-recursive-backtracking
+def generateMaze(current: Node, board):
+
+    current.drawColorOnBoard(WHITE)
+    current.blocked = False
+    current.visited = True
+
+    neighbors = getNeighbors(current.y, current.x, board)
+
+    while len(neighbors) > 0:
+
+        n = neighbors.pop(random.randrange(0, len(neighbors)))
+
+        if n.visited:
+            continue
+
+        middleX = int((n.x - current.x)/2) + current.x
+        middleY = int((n.y - current.y)/2) + current.y
+        board[middleX][middleY].drawColorOnBoard(WHITE)
+        board[middleX][middleY].blocked = False
+
+        generateMaze(n, board)
+
+
+# TODO add comment
+def getNeighbors(x, y, board):
+    neighbors = []
+    for i in range(-2, 3, 2):
+        for j in range(-2, 3, 2):
+            if (x + i) >= recAmount or (x + i) < 0 or (y + j) >= recAmount or (y + j) < 0 or (i == 0 and j == 0):
+                continue
+            if abs(i) == abs(j):
+                continue
+
+            neighbor = board[y + j][x + i]
+            if neighbor.visited:
+                continue
+
+            neighbors.append(neighbor)
+    return neighbors
 
 
 if __name__ == "__main__":
